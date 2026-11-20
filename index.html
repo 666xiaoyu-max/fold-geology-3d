@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D褶皱构造｜背斜向斜地理教具</title>
+<style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{overflow:hidden;background:#eceef2}
+    canvas{display:block}
+    .tip{
+        position:absolute;top:12px;left:12px;
+        background:rgba(255,255,255,0.85);
+        padding:8px 14px;border-radius:8px;font-size:14px;
+        font-family:Arial;
+        box-shadow:0 2px 8px #0002;
+    }
+</style>
+</head>
+<body>
+<div class="tip">🖱️鼠标拖拽旋转｜滚轮缩放 ✦ 地质褶皱背斜向斜</div>
+
+<!-- ✅ 使用稳定官方CDN -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+// 场景
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf3f7fa);
+
+// 相机
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 10, 16);
+
+// 渲染器
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+// 轨道控制器
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.04;
+
+// 光照系统
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+const sunLight = new THREE.DirectionalLight(0xffffff, 1);
+sunLight.position.set(6,14,6);
+sunLight.castShadow = true;
+scene.add(sunLight);
+
+
+// ========== 创建褶皱岩层 ==========
+function createFoldStratum(baseY, layerColor, waveHeight = 2.5){
+    // 网格细分
+    const width = 22;
+    const depth = 6;
+    const geo = new THREE.PlaneGeometry(width, depth, 70, 25);
+    const pos = geo.attributes.position;
+
+    // 正弦褶皱变形
+    for(let i=0; i < pos.count; i++){
+        const x = pos.getX(i);
+        // 褶皱起伏公式
+        const zFold = Math.sin( x / 3 ) * waveHeight;
+        pos.setZ(i, zFold + baseY);
+    }
+    pos.needsUpdate = true;
+    geo.computeVertexNormals();
+
+    const mat = new THREE.MeshStandardMaterial({
+        color: layerColor,
+        roughness: 0.65,
+        metalness:0.05,
+        side: THREE.DoubleSide
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    // ✅ 旋转调整：不用 -PI/2 容易出错的版本
+    mesh.rotation.x = Math.PI / 2;
+    mesh.receiveShadow = true;
+    mesh.castShadow = true;
+    scene.add(mesh);
+    return mesh;
+}
+
+// 多层岩层（从上→下）
+createFoldStratum(0,     0x62a872);
+createFoldStratum(-1.3,  0x5988b5);
+createFoldStratum(-2.6,  0xc2a46e);
+createFoldStratum(-3.9,  0x8b6b5c);
+createFoldStratum(-5.2,  0x666666);
+
+
+// 渲染循环
+function animate(){
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+// 窗口自适应
+window.addEventListener('resize', ()=>{
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+})
+
+animate();
+</script>
+</body>
+</html>
